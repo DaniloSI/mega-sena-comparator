@@ -154,6 +154,7 @@ function App() {
             className="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
             onChange={(e) => setInputSortedTen(e.target.value)}
             value={inputSortedTen}
+            inputMode="decimal"
           />
         </label>
       </div>
