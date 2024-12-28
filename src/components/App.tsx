@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import YAML from 'yaml'
+
+const GAMES_KEY = 'games'
 
 function App() {
   const { 1: setSelectedFile } = useState<File | null>(null)
@@ -11,17 +13,32 @@ function App() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null
+
     setSelectedFile(file)
 
     if (file) {
       const reader = new FileReader()
+
       reader.onload = (e) => {
         const yamlString = (e.target?.result ?? '') as string
-        setGames(YAML.parse(yamlString))
+        const newGames = YAML.parse(yamlString)
+
+        setGames(newGames)
+
+        localStorage.setItem(GAMES_KEY, JSON.stringify(newGames))
       }
+
       reader.readAsText(file)
     }
   }
+
+  useEffect(() => {
+    const gamesCache = localStorage.getItem(GAMES_KEY)
+
+    if (gamesCache) {
+      setGames(JSON.parse(gamesCache))
+    }
+  }, [])
 
   const gamesConfig = useMemo(() => {
     const config = new Map<number, number>()
