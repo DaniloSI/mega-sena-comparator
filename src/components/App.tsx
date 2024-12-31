@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 
 import YAML from 'yaml'
 
+import defaultGames from './default-games.json'
+import Modal from './Modal'
+
 const GAMES_KEY = 'games'
 
 function App() {
@@ -10,7 +13,9 @@ function App() {
   const [games, setGames] = useState<number[][]>([])
   const [inputSortedTen, setInputSortedTen] = useState<string>('')
   const [result, setResult] = useState<number[][] | null>(null)
+  const [gamesResult, setGamesResult] = useState<number[][]>([])
   const [activeTab, setActiveTab] = useState<number>(0)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null
@@ -35,10 +40,7 @@ function App() {
 
   useEffect(() => {
     const gamesCache = localStorage.getItem(GAMES_KEY)
-
-    if (gamesCache) {
-      setGames(JSON.parse(gamesCache))
-    }
+    setGames(gamesCache ? JSON.parse(gamesCache) : defaultGames)
   }, [])
 
   const gamesConfig = useMemo(() => {
@@ -61,17 +63,21 @@ function App() {
     )
 
     const result = new Map<number, number>()
+    const gamesResultNew = []
 
     for (const game of games) {
       const matches = sortedTen.intersection(new Set(game))
 
       if (matches.size > 3) {
         const currentValue = result.get(matches.size) ?? 0
+
         result.set(matches.size, currentValue + 1)
+        gamesResultNew.push(game)
       }
     }
 
     setResult(Array.from(result.entries()))
+    setGamesResult(gamesResultNew)
   }
 
   return (
@@ -194,36 +200,80 @@ function App() {
             </h3>
 
             {result.length > 0 ? (
-              <table className="min-w-full divide-y-2 divide-gray-200 bg-white text-sm">
-                <thead className="ltr:text-left rtl:text-right">
-                  <tr>
-                    <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
-                      Prêmio
-                    </th>
-                    <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
-                      Total de Jogos Premiados
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {result.map(([length, amount]) => (
-                    <tr key={length}>
-                      <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
-                        {
-                          {
-                            6: 'Sena',
-                            5: 'Quina',
-                            4: 'Quadra'
-                          }[length]
-                        }
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-2 text-gray-700">
-                        {amount}
-                      </td>
+              <>
+                <table className="min-w-full divide-y-2 divide-gray-200 bg-white text-sm">
+                  <thead className="ltr:text-left rtl:text-right">
+                    <tr>
+                      <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
+                        Prêmio
+                      </th>
+                      <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
+                        Total de Jogos Premiados
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {result
+                      .sort(([lengthA], [lengthB]) => lengthB - lengthA)
+                      .map(([length, amount]) => (
+                        <tr key={length}>
+                          <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">
+                            {
+                              {
+                                6: 'Sena',
+                                5: 'Quina',
+                                4: 'Quadra'
+                              }[length]
+                            }
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-2 text-gray-700">
+                            {amount}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                <div className="mt-4 flex items-center justify-center">
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="rounded bg-blue-500 px-6 py-2 text-white hover:bg-blue-600"
+                  >
+                    Ver jogos premiados
+                  </button>
+                  <Modal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    title="Resultados"
+                  >
+                    <ul>
+                      {gamesResult.map((gameResult) => (
+                        <li key={JSON.stringify(gameResult)}>
+                          {gameResult.map((ten, index) => (
+                            <>
+                              <span
+                                key={ten}
+                                className={
+                                  new Set(
+                                    inputSortedTen
+                                      .replaceAll(' ', '')
+                                      .split(',')
+                                      .map((ten) => parseInt(ten))
+                                  ).has(ten)
+                                    ? 'text-green-500'
+                                    : ''
+                                }
+                              >
+                                {ten.toString().padStart(2, '0')}
+                              </span>
+                              {index < gameResult.length - 1 && <span>-</span>}
+                            </>
+                          ))}
+                        </li>
+                      ))}
+                    </ul>
+                  </Modal>
+                </div>
+              </>
             ) : (
               <p className="text-center">Não houve acertos :(</p>
             )}
